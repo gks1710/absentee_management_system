@@ -883,7 +883,7 @@
 
       let reportLines = [];
       const dayTitle = dayName.charAt(0).toUpperCase() + dayName.slice(1).toLowerCase();
-      reportLines.push(`*Absentees Reports - for \({formattedDate} -\){dayTitle}*`);
+      reportLines.push(`*Absentees Reports - for (${formattedDate} - ${dayTitle})*`);
       reportLines.push('');
       reportLines.push('-----------------------------------------');
 
@@ -897,7 +897,8 @@
           .filter(e => markedAbsentees[e.id])
           .map(e => ({
             name: e.employee_name,
-            code: markedAbsentees[e.id].code
+			post: e.post,
+			code: markedAbsentees[e.id].code
           }));
 
         const totalAbsentCount = branchAbsentees.length;
@@ -912,7 +913,7 @@
           reportLines.push('(1) All present');
         } else {
           branchAbsentees.forEach((abs, i) => {
-            reportLines.push(`(${i + 1}) ${abs.name} - ${abs.code}`);
+            reportLines.push(`(${i + 1}) ${abs.name},${abs.post} - ${abs.code}`);
           });
         }
 
