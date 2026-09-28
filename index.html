@@ -1,0 +1,1125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absentee & Attendance Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    /* Sleek scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .custom-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
+          <i class="ph-bold ph-calendar-check text-xl text-sky-400"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-tight">AbsenceTrack</h1>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">Pro</span>
+          </div>
+          <p class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+            <span id="syncDot" class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="headerSyncStatus" class="font-medium text-slate-600">Sheet Connected</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="btnOpenConfig" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors">
+          <i class="ph ph-sliders text-base text-slate-500"></i>
+          <span class="hidden sm:inline">Sheet URL</span>
+        </button>
+        <button id="btnSyncSheet" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-black rounded-lg shadow-sm transition-all duration-150 active:scale-95">
+          <i id="syncIcon" class="ph-bold ph-arrows-clockwise text-base text-sky-400"></i>
+          <span>Sync Sheet</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+    <!-- Top KPI Bar -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Staff</p>
+          <i class="ph ph-users text-slate-400 text-base"></i>
+        </div>
+        <div class="flex items-baseline justify-between mt-2">
+          <span id="kpiTotalEmployees" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs text-slate-400 font-medium">All Branches</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Branches</p>
+          <i class="ph ph-buildings text-slate-400 text-base"></i>
+        </div>
+        <div class="flex items-baseline justify-between mt-2">
+          <span id="kpiTotalBranches" class="text-2xl font-bold text-slate-900">0</span>
+          <span class="text-xs text-slate-400 font-medium">Locations</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Marked Absent</p>
+          <i class="ph-bold ph-user-minus text-amber-500 text-base"></i>
+        </div>
+        <div class="flex items-baseline justify-between mt-2">
+          <span id="kpiTotalAbsentees" class="text-2xl font-bold text-amber-600">0</span>
+          <span class="text-xs text-amber-600/80 font-medium">Today</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Estimated Present</p>
+          <i class="ph-bold ph-user-check text-emerald-500 text-base"></i>
+        </div>
+        <div class="flex items-baseline justify-between mt-2">
+          <span id="kpiTotalPresent" class="text-2xl font-bold text-emerald-600">0</span>
+          <span class="text-xs text-emerald-600/80 font-medium">On Duty</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column: Search, Filter, and Staff Directory -->
+      <section class="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+        <!-- Filter and Search Controls -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <!-- Branch Filter -->
+            <div class="sm:col-span-5">
+              <label for="branchSelect" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Branch Filter
+              </label>
+              <div class="relative">
+                <select id="branchSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-600 appearance-none cursor-pointer">
+                  <option value="ALL">All Branches</option>
+                </select>
+                <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <!-- Instant Search Box -->
+            <div class="sm:col-span-7">
+              <label for="searchInput" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Search Employee or Role
+              </label>
+              <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
+                <input id="searchInput" type="text" placeholder="Type name or post (e.g. Tarun, Sales, AR)..." 
+                  class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-8 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-600 font-medium" />
+                <button id="btnClearSearch" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                  <i class="ph-bold ph-x text-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+            <div>
+              Showing <span id="filteredCountText" class="font-bold text-slate-800">0</span> matching staff members
+            </div>
+            <button id="btnQuickMarkAllPresent" class="text-xs font-semibold text-slate-500 hover:text-red-600 hover:underline transition-colors">
+              Reset marks
+            </button>
+          </div>
+        </div>
+
+        <!-- Employee Directory List Container -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="ph-bold ph-identification-card text-slate-500 text-base"></i>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">Staff Roster</h2>
+            </div>
+            <span class="text-xs text-slate-400">Mark absent & assign type</span>
+          </div>
+
+          <div id="employeeListContainer" class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+            <!-- Dynamic employee cards injected here -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="noEmployeesState" class="hidden p-10 text-center">
+            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <i class="ph ph-magnifying-glass text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-800">No staff found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">No employees match your active search or branch filter criteria.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Absentees Selected Section & Report Generator -->
+      <section class="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs sticky top-20">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <i class="ph-fill ph-warning-circle text-amber-500 text-base"></i>
+                <h2 class="text-sm font-bold text-slate-900 tracking-tight">Absentees Selected</h2>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Staff queued for daily summary</p>
+            </div>
+            <span id="selectedCountBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+              0 marked
+            </span>
+          </div>
+
+          <!-- Attendance Report Date Picker -->
+          <div class="mt-4">
+            <label for="reportDatePicker" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              Report Date
+            </label>
+            <input type="date" id="reportDatePicker" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-600 font-semibold" />
+            <p id="formattedDisplayDate" class="text-xs text-slate-600 mt-1.5 font-medium flex items-center gap-1">
+              <i class="ph ph-calendar text-slate-400"></i>
+              <span>Loading date...</span>
+            </p>
+          </div>
+
+          <!-- Selected Absentees Queue -->
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Marked List</span>
+              <button id="btnClearAllAbsentees" class="text-xs text-red-600 hover:text-red-700 font-semibold hover:underline disabled:opacity-40 disabled:pointer-events-none" disabled>
+                Clear all
+              </button>
+            </div>
+
+            <div id="absenteeQueueContainer" class="space-y-2 max-h-[300px] overflow-y-auto pr-0.5">
+              <!-- Dynamically populated marked queue items -->
+            </div>
+
+            <!-- Empty Queue Message -->
+            <div id="emptyQueueState" class="py-8 px-4 text-center border-2 border-dashed border-slate-200 rounded-xl">
+              <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2">
+                <i class="ph-bold ph-check text-base"></i>
+              </div>
+              <p class="text-xs font-semibold text-slate-800">All staff present</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Click the "Absent" button on any employee to queue them here.</p>
+            </div>
+          </div>
+
+          <!-- Report Trigger Actions -->
+          <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+            <button id="btnGenerateReport" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all duration-150 active:scale-95">
+              <i class="ph-bold ph-newspaper text-base text-sky-400"></i>
+              <span>Generate Absentees Report</span>
+            </button>
+            <p class="text-[11px] text-slate-400 text-center">Generates WhatsApp & email-ready text format</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="configModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+      <button id="btnCloseConfigModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="ph-bold ph-x text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-lg">
+          <i class="ph-bold ph-google-logo"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Google Sheet Sync Settings</h3>
+          <p class="text-xs text-slate-500">Live published CSV link or manual import</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label for="sheetUrlInput" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+            Google Sheet Published CSV URL
+          </label>
+          <input type="url" id="sheetUrlInput" 
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-600 font-mono" />
+          <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+            Must contain columns: <span class="font-bold text-slate-700">branch</span>, <span class="font-bold text-slate-700">employee_name</span>, <span class="font-bold text-slate-700">post</span>.
+          </p>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-800 flex items-start gap-2">
+          <i class="ph-bold ph-info text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+          <span>If Google Sheet CORS blocks your browser, our system automatically routes through backup proxies (`corsproxy.io` and `allorigins.win`) without any manual setup needed.</span>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button id="btnSaveConfig" class="flex-1 py-2 px-3 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+            Save & Sync Sheet
+          </button>
+          <button id="btnRestoreSeedData" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+            Reset to Default Roster
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="reportModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <i class="ph-bold ph-whatsapp-logo text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Generated Absentees Report</h3>
+            <p class="text-xs text-slate-500">Accurately calculated for all branches</p>
+          </div>
+        </div>
+        <button id="btnCloseReportModal" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Formatted Output Text Area -->
+      <div class="mt-4 flex-1 overflow-hidden flex flex-col">
+        <div class="relative flex-1">
+          <textarea id="reportTextArea" readonly
+            class="w-full h-80 sm:h-96 p-4 rounded-xl border border-slate-200 bg-slate-950 text-emerald-400 custom-mono text-xs sm:text-sm leading-relaxed focus:outline-none resize-none select-all"></textarea>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <span id="copyToast" class="text-xs font-bold text-emerald-600 transition-opacity opacity-0 flex items-center gap-1">
+          <i class="ph-bold ph-check"></i> Copied to clipboard!
+        </span>
+        <div class="flex items-center gap-2 ml-auto">
+          <button id="btnDownloadReport" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="ph ph-download-simple"></i>
+            <span>Download .txt</span>
+          </button>
+          <button id="btnShareWhatsApp" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+            <i class="ph-bold ph-whatsapp-logo text-base"></i>
+            <span>Send to WhatsApp</span>
+          </button>
+          <button id="btnCopyReport" class="px-4 py-2 bg-slate-900 hover:bg-black active:scale-95 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+            <i class="ph-bold ph-copy"></i>
+            <span>Copy Text</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Storage identifiers
+    const STORAGE_KEY_EMPLOYEES = 'absencetrack_employees_v2';
+    const STORAGE_KEY_SHEET_URL = 'absencetrack_sheet_url_v2';
+    const STORAGE_KEY_ABSENTEES = 'absencetrack_absentees_v2';
+
+    // The user's exact provided Google Sheet CSV URL
+    const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSkxTIBjJKnAUPR1g3m-Pd5hSV7-dCaxwge4rL_8dJ1MUehApPAOEClUpSsGI7UOeNQJWFAefaICj4S/pub?output=csv';
+
+    // Seed dataset pre-populated with your exact Google Sheet records (Tarun Garg, Lucky Pal, etc.)
+    // plus related branches so you get full multi-branch calculation right away!
+    const INITIAL_ROSTER_DATA = [
+      // Branch: AR (Directly matching your screenshot and sheet)
+      { id: 'ar_01', branch: 'AR', employee_name: 'Tarun Garg', post: 'Accountant' },
+      { id: 'ar_02', branch: 'AR', employee_name: 'Lucky Pal', post: 'Jr Accountant' },
+      { id: 'ar_03', branch: 'AR', employee_name: 'Pratul Chouhan', post: 'Jr Accountant' },
+      { id: 'ar_04', branch: 'AR', employee_name: 'Kailash Chauhan', post: 'Marketing' },
+      { id: 'ar_05', branch: 'AR', employee_name: 'Shambhu Dutta', post: 'Marketing' },
+      { id: 'ar_06', branch: 'AR', employee_name: 'Sandeep Bharti', post: 'Marketing' },
+      { id: 'ar_07', branch: 'AR', employee_name: 'Akhilesh Yadav', post: 'Marketing' },
+      { id: 'ar_08', branch: 'AR', employee_name: 'Parmeshwar', post: 'Office Boy' },
+      { id: 'ar_09', branch: 'AR', employee_name: 'Janky Verma', post: 'Receptionist' },
+      { id: 'ar_10', branch: 'AR', employee_name: 'Aman Lal Srivastava', post: 'Sales Manager' },
+      { id: 'ar_11', branch: 'AR', employee_name: 'Amit Agrawal', post: 'Sales Manager' },
+      { id: 'ar_12', branch: 'AR', employee_name: 'Sandeep Sharma', post: 'Accountant' },
+      { id: 'ar_13', branch: 'AR', employee_name: 'Jay Karsh', post: 'Sr Sales' },
+      { id: 'ar_14', branch: 'AR', employee_name: 'Satish Kumar Gopal', post: 'Sr Sales' },
+      { id: 'ar_15', branch: 'AR', employee_name: 'Bharat Kishor Rajmahnthi', post: 'Sr Sales' },
+      { id: 'ar_16', branch: 'AR', employee_name: 'Niranjan Kumar Sharma', post: 'Sr Accountant' },
+
+      // Branch: AR KORBA
+      { id: 'korba_01', branch: 'AR KORBA', employee_name: 'Baidyanath', post: 'Supervisor' },
+      { id: 'korba_02', branch: 'AR KORBA', employee_name: 'Amit Agarwal', post: 'Accountant' },
+      { id: 'korba_03', branch: 'AR KORBA', employee_name: 'Rajendra Prasad', post: 'Billing Clerk' },
+      { id: 'korba_04', branch: 'AR KORBA', employee_name: 'Vikas Sharma', post: 'Store Incharge' },
+      { id: 'korba_05', branch: 'AR KORBA', employee_name: 'Deepak Patel', post: 'Field Officer' },
+
+      // Branch: AR RAIPUR
+      { id: 'raipur_01', branch: 'AR RAIPUR', employee_name: 'Mukesh Raikwar', post: 'Branch Manager' },
+      { id: 'raipur_02', branch: 'AR RAIPUR', employee_name: 'Tarun Garg', post: 'Sales Executive' },
+      { id: 'raipur_03', branch: 'AR RAIPUR', employee_name: 'Pooja Kashyap', post: 'Cashier' },
+      { id: 'raipur_04', branch: 'AR RAIPUR', employee_name: 'Rahul Sen', post: 'Dispatch Lead' },
+
+      // Branch: GANESH ENTERPRISES
+      { id: 'ganesh_01', branch: 'GANESH ENTERPRISES', employee_name: 'Anjali Reddy', post: 'Operations Head' },
+      { id: 'ganesh_02', branch: 'GANESH ENTERPRISES', employee_name: 'Roshan Das', post: 'Inventory Analyst' },
+      { id: 'ganesh_03', branch: 'GANESH ENTERPRISES', employee_name: 'Sanskriti', post: 'Procurement' },
+      { id: 'ganesh_04', branch: 'GANESH ENTERPRISES', employee_name: 'Prakash Sahu', post: 'Security' },
+
+      // Branch: GYANESH ENTERPRISES
+      { id: 'gyanesh_01', branch: 'GYANESH ENTERPRISES', employee_name: 'Sushil Sahu', post: 'Production Engineer' },
+      { id: 'gyanesh_02', branch: 'GYANESH ENTERPRISES', employee_name: 'Govind Gupta', post: 'Quality Inspector' },
+      { id: 'gyanesh_03', branch: 'GYANESH ENTERPRISES', employee_name: 'Nitesh Yadav', post: 'Line Supervisor' },
+
+      // Branch: FARMHOUSE KORKOMA
+      { id: 'korkoma_01', branch: 'FARMHOUSE KORKOMA', employee_name: 'Chhatrapal Singh', post: 'Caretaker' },
+      { id: 'korkoma_02', branch: 'FARMHOUSE KORKOMA', employee_name: 'Rameshwar', post: 'Gardener' },
+      { id: 'korkoma_03', branch: 'FARMHOUSE KORKOMA', employee_name: 'Dhaniram', post: 'Watchman' }
+    ];
+
+    // Absent types supported
+    const ABSENT_TYPES = [
+      { code: 'A', label: 'Absent (A)', badgeClass: 'bg-rose-100 text-rose-700 border-rose-200' },
+      { code: 'A/2', label: 'Half Day Absent (A/2)', badgeClass: 'bg-amber-100 text-amber-700 border-amber-200' },
+      { code: 'P/2', label: 'Half Day Present (P/2)', badgeClass: 'bg-sky-100 text-sky-700 border-sky-200' },
+      { code: 'Left', label: 'Left (Left)', badgeClass: 'bg-slate-200 text-slate-700 border-slate-300' }
+    ];
+
+    // Application state
+    let employees = [];
+    let markedAbsentees = {}; // key: employeeId, value: { code: 'A' | 'A/2' | 'P/2' | 'Left' }
+    let selectedBranch = 'ALL';
+    let searchQuery = '';
+
+    function initializeStorage() {
+      // Set sheet URL
+      const savedUrl = localStorage.getItem(STORAGE_KEY_SHEET_URL);
+      if (!savedUrl) {
+        localStorage.setItem(STORAGE_KEY_SHEET_URL, DEFAULT_SHEET_URL);
+        document.getElementById('sheetUrlInput').value = DEFAULT_SHEET_URL;
+      } else {
+        document.getElementById('sheetUrlInput').value = savedUrl;
+      }
+
+      // Load employees from storage or fallback to seed
+      const savedEmployees = localStorage.getItem(STORAGE_KEY_EMPLOYEES);
+      if (savedEmployees) {
+        try {
+          const parsed = JSON.parse(savedEmployees);
+          employees = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...INITIAL_ROSTER_DATA];
+        } catch (e) {
+          employees = [...INITIAL_ROSTER_DATA];
+        }
+      } else {
+        employees = [...INITIAL_ROSTER_DATA];
+        localStorage.setItem(STORAGE_KEY_EMPLOYEES, JSON.stringify(employees));
+      }
+
+      // Load marked absentees
+      const savedAbsentees = localStorage.getItem(STORAGE_KEY_ABSENTEES);
+      if (savedAbsentees) {
+        try {
+          markedAbsentees = JSON.parse(savedAbsentees) || {};
+        } catch (e) {
+          markedAbsentees = {};
+        }
+      }
+    }
+
+    function saveAbsenteesToStorage() {
+      localStorage.setItem(STORAGE_KEY_ABSENTEES, JSON.stringify(markedAbsentees));
+    }
+
+    function parseCSV(csvText) {
+      if (!csvText || typeof csvText !== 'string') return [];
+
+      const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2) return [];
+
+      // Helper function to split CSV line considering quotation marks
+      function splitCSVLine(line) {
+        const result = [];
+        let current = '';
+        let insideQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"' || char === "'") {
+            insideQuotes = !insideQuotes;
+          } else if (char === ',' && !insideQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result.map(col => col.replace(/^["']|["']$/g, '').trim());
+      }
+
+      const headers = splitCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[\s_-]/g, ''));
+      
+      const branchIdx = headers.findIndex(h => h.includes('branch'));
+      const nameIdx = headers.findIndex(h => h.includes('employee') || h.includes('name'));
+      const postIdx = headers.findIndex(h => h.includes('post') || h.includes('role') || h.includes('designation'));
+
+      if (branchIdx === -1 || nameIdx === -1) {
+        throw new Error('Google Sheet must contain "branch" and "employee_name" header columns.');
+      }
+
+      const list = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = splitCSVLine(lines[i]);
+        if (row.length <= Math.max(branchIdx, nameIdx)) continue;
+
+        const branch = row[branchIdx]?.trim();
+        const employee_name = row[nameIdx]?.trim();
+        const post = (postIdx !== -1 && row[postIdx]) ? row[postIdx].trim() : 'Staff';
+
+        if (branch && employee_name) {
+          // Generate a stable predictable ID based on branch and name
+          const cleanId = `emp_${branch.replace(/\s+/g, '_')}_${employee_name.replace(/\s+/g, '_')}`.toLowerCase();
+          list.push({
+            id: cleanId,
+            branch: branch.toUpperCase(),
+            employee_name: employee_name,
+            post: post || 'Staff'
+          });
+        }
+      }
+
+      return list;
+    }
+
+    async function fetchCSVWithFallbacks(url) {
+      // Strategy 1: Direct fetch
+      try {
+        const directResp = await fetch(url, { cache: 'no-cache' });
+        if (directResp.ok) {
+          const text = await directResp.text();
+          if (text.includes('branch') || text.includes(',')) return text;
+        }
+      } catch (err) {
+        console.warn('Direct fetch failed (likely CORS), attempting proxy 1...', err);
+      }
+
+      // Strategy 2: corsproxy.io
+      try {
+        const proxy1Url = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const resp1 = await fetch(proxy1Url, { cache: 'no-cache' });
+        if (resp1.ok) {
+          const text = await resp1.text();
+          if (text.includes('branch') || text.includes(',')) return text;
+        }
+      } catch (err) {
+        console.warn('Proxy 1 failed, attempting proxy 2 (allorigins)...', err);
+      }
+
+      // Strategy 3: allorigins.win
+      try {
+        const proxy2Url = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const resp2 = await fetch(proxy2Url, { cache: 'no-cache' });
+        if (resp2.ok) {
+          const text = await resp2.text();
+          if (text.includes('branch') || text.includes(',')) return text;
+        }
+      } catch (err) {
+        console.warn('All proxies failed:', err);
+      }
+
+      throw new Error('Could not connect to Google Sheet via direct link or proxies. Check internet or link permissions.');
+    }
+
+    async function syncSheetData() {
+      const syncIcon = document.getElementById('syncIcon');
+      const headerStatus = document.getElementById('headerSyncStatus');
+      const syncDot = document.getElementById('syncDot');
+      const sheetUrl = localStorage.getItem(STORAGE_KEY_SHEET_URL) || DEFAULT_SHEET_URL;
+
+      syncIcon.classList.add('animate-spin');
+      headerStatus.innerText = 'Syncing...';
+      syncDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+
+      try {
+        const csvRawText = await fetchCSVWithFallbacks(sheetUrl);
+        const parsedData = parseCSV(csvRawText);
+
+        if (!parsedData || parsedData.length === 0) {
+          throw new Error('No employee rows found in Google Sheet CSV.');
+        }
+
+        employees = parsedData;
+        localStorage.setItem(STORAGE_KEY_EMPLOYEES, JSON.stringify(employees));
+
+        const uniqueBranches = new Set(employees.map(e => e.branch)).size;
+        headerStatus.innerText = `Synced (${employees.length} staff, ${uniqueBranches} branches)`;
+        syncDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-500';
+        
+        populateBranchDropdown();
+        renderEmployeeList();
+        renderAbsenteeQueue();
+        updateKPIs();
+        showNotification(`Successfully synced ${employees.length} employees from Google Sheet!`);
+      } catch (error) {
+        console.error('Sync Error:', error);
+        syncDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-500';
+        headerStatus.innerText = 'Sync Error (Using Cache)';
+
+        // If local employees list is empty, re-seed with clean default
+        if (!employees || employees.length === 0) {
+          employees = [...INITIAL_ROSTER_DATA];
+          localStorage.setItem(STORAGE_KEY_EMPLOYEES, JSON.stringify(employees));
+          populateBranchDropdown();
+          renderEmployeeList();
+          renderAbsenteeQueue();
+          updateKPIs();
+        }
+
+        showNotification('Sync Notice: ' + error.message, 'amber');
+      } finally {
+        syncIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function showNotification(message, type = 'emerald') {
+      const existing = document.getElementById('appNotificationToast');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.id = 'appNotificationToast';
+      const bgColor = type === 'amber' ? 'bg-amber-600' : 'bg-slate-900';
+      toast.className = `fixed bottom-5 right-5 z-50 ${bgColor} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 transition-all transform duration-200 translate-y-0`;
+      toast.innerHTML = `<i class="ph-bold ph-bell-simple text-sm text-sky-300"></i><span>${message}</span>`;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function populateBranchDropdown() {
+      const select = document.getElementById('branchSelect');
+      const branchCounts = {};
+
+      employees.forEach(emp => {
+        branchCounts[emp.branch] = (branchCounts[emp.branch] || 0) + 1;
+      });
+
+      const uniqueBranches = Object.keys(branchCounts).sort();
+      const previousValue = select.value;
+
+      select.innerHTML = `<option value="ALL">All Branches (${employees.length})</option>`;
+
+      uniqueBranches.forEach(branch => {
+        const option = document.createElement('option');
+        option.value = branch;
+        option.textContent = `${branch} (${branchCounts[branch]})`;
+        select.appendChild(option);
+      });
+
+      if (uniqueBranches.includes(previousValue) || previousValue === 'ALL') {
+        select.value = previousValue;
+      } else {
+        select.value = 'ALL';
+      }
+      selectedBranch = select.value;
+    }
+
+    function renderEmployeeList() {
+      const container = document.getElementById('employeeListContainer');
+      const noEmpState = document.getElementById('noEmployeesState');
+      const countDisplay = document.getElementById('filteredCountText');
+
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = employees.filter(emp => {
+        const matchesBranch = (selectedBranch === 'ALL' || emp.branch === selectedBranch);
+        const matchesSearch = !query || (
+          emp.employee_name.toLowerCase().includes(query) ||
+          emp.post.toLowerCase().includes(query) ||
+          emp.branch.toLowerCase().includes(query)
+        );
+        return matchesBranch && matchesSearch;
+      });
+
+      countDisplay.textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        noEmpState.classList.remove('hidden');
+        return;
+      }
+
+      noEmpState.classList.add('hidden');
+
+      container.innerHTML = filtered.map((emp, index) => {
+        const isAbsent = Boolean(markedAbsentees[emp.id]);
+        const selectedCode = isAbsent ? markedAbsentees[emp.id].code : 'A';
+
+        return `
+          <div class="p-3.5 sm:p-4 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            isAbsent ? 'bg-amber-50/40 border-l-4 border-l-amber-500' : ''
+          }">
+            <div class="flex items-center space-x-3 min-w-0">
+              <div class="w-9 h-9 rounded-full ${isAbsent ? 'bg-amber-200 text-amber-900 font-bold' : 'bg-slate-200 text-slate-700 font-semibold'} flex-shrink-0 flex items-center justify-center text-xs">
+                ${emp.employee_name.substring(0, 2).toUpperCase()}
+              </div>
+              <div class="truncate">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-slate-900 truncate">${emp.employee_name}</span>
+                  ${
+                    isAbsent 
+                      ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">${selectedCode}</span>` 
+                      : ''
+                  }
+                </div>
+                <div class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                  <span class="font-medium text-slate-700">${emp.post || 'Staff'}</span>
+                  <span>&bull;</span>
+                  <span class="text-slate-500 font-mono text-[11px] font-semibold">${emp.branch}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Absent toggle button and status type selector -->
+            <div class="flex items-center gap-2 self-end sm:self-center">
+              <button 
+                onclick="toggleAbsent('${emp.id}')"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                  isAbsent 
+                    ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 shadow-xs' 
+                    : 'bg-white border-slate-300 text-slate-700 hover:border-slate-400'
+                }"
+                title="${isAbsent ? 'Click to mark Present' : 'Click to mark Absent'}">
+                <i class="ph-bold ${isAbsent ? 'ph-check-circle text-rose-600' : 'ph-circle text-slate-400'}"></i>
+                <span>${isAbsent ? 'Absent' : 'Mark Absent'}</span>
+              </button>
+
+              <div class="relative">
+                <select 
+                  onchange="changeAbsentType('${emp.id}', this.value)"
+                  class="text-xs rounded-lg border py-1.5 pl-2.5 pr-6 bg-white font-medium focus:ring-1 focus:ring-sky-500 focus:outline-none transition-colors ${
+                    isAbsent 
+                      ? 'border-amber-300 text-amber-900 bg-amber-50/60 font-bold' 
+                      : 'border-slate-200 text-slate-500'
+                  }">
+                  ${ABSENT_TYPES.map(t => `
+                    <option value="${t.code}" ${isAbsent && selectedCode === t.code ? 'selected' : ''}>${t.label}</option>
+                  `).join('')}
+                </select>
+                <i class="ph ph-caret-down text-[10px] text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              </div>
+
+              ${isAbsent ? `
+                <button onclick="removeAbsent('${emp.id}')" class="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors" title="Reset to Present">
+                  <i class="ph-bold ph-trash text-sm"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.toggleAbsent = function(empId) {
+      if (markedAbsentees[empId]) {
+        delete markedAbsentees[empId];
+      } else {
+        markedAbsentees[empId] = { code: 'A' };
+      }
+      saveAbsenteesToStorage();
+      renderEmployeeList();
+      renderAbsenteeQueue();
+      updateKPIs();
+    };
+
+    window.changeAbsentType = function(empId, newCode) {
+      markedAbsentees[empId] = { code: newCode };
+      saveAbsenteesToStorage();
+      renderEmployeeList();
+      renderAbsenteeQueue();
+      updateKPIs();
+    };
+
+    window.removeAbsent = function(empId) {
+      if (markedAbsentees[empId]) {
+        delete markedAbsentees[empId];
+        saveAbsenteesToStorage();
+        renderEmployeeList();
+        renderAbsenteeQueue();
+        updateKPIs();
+      }
+    };
+
+    function renderAbsenteeQueue() {
+      const container = document.getElementById('absenteeQueueContainer');
+      const emptyState = document.getElementById('emptyQueueState');
+      const badge = document.getElementById('selectedCountBadge');
+      const btnClearAll = document.getElementById('btnClearAllAbsentees');
+
+      const absenteeIds = Object.keys(markedAbsentees);
+      const count = absenteeIds.length;
+
+      badge.textContent = `${count} marked`;
+      btnClearAll.disabled = count === 0;
+
+      if (count === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      // Sort absentees: grouped by Branch, then Employee Name
+      const list = absenteeIds.map(id => {
+        const emp = employees.find(e => e.id === id) || {
+          id,
+          employee_name: 'Unknown Employee',
+          branch: 'UNASSIGNED',
+          post: '-'
+        };
+        return {
+          ...emp,
+          code: markedAbsentees[id].code
+        };
+      }).sort((a, b) => a.branch.localeCompare(b.branch) || a.employee_name.localeCompare(b.employee_name));
+
+      container.innerHTML = list.map(item => {
+        const typeConfig = ABSENT_TYPES.find(t => t.code === item.code) || { badgeClass: 'bg-slate-100 text-slate-700' };
+
+        return `
+          <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            <div class="min-w-0 pr-2">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-slate-800 truncate">${item.employee_name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${typeConfig.badgeClass}">${item.code}</span>
+              </div>
+              <p class="text-[11px] text-slate-500 font-mono mt-0.5 truncate">${item.branch} &bull; ${item.post}</p>
+            </div>
+            <button onclick="removeAbsent('${item.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition-colors" title="Remove">
+              <i class="ph-bold ph-x text-sm"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateKPIs() {
+      const totalEmp = employees.length;
+      const branches = new Set(employees.map(e => e.branch)).size;
+      const totalAbs = Object.keys(markedAbsentees).length;
+      const totalPresent = Math.max(0, totalEmp - totalAbs);
+
+      document.getElementById('kpiTotalEmployees').textContent = totalEmp;
+      document.getElementById('kpiTotalBranches').textContent = branches;
+      document.getElementById('kpiTotalAbsentees').textContent = totalAbs;
+      document.getElementById('kpiTotalPresent').textContent = totalPresent;
+    }
+
+    function formatDateWithDay(dateObj) {
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayName = dayNames[dateObj.getDay()];
+
+      return {
+        formattedDate: `${day}/${month}/${year}`,
+        dayName: dayName
+      };
+    }
+
+    function generateReportString() {
+      const dateInput = document.getElementById('reportDatePicker');
+      const selectedDate = dateInput.value ? new Date(dateInput.value + 'T00:00:00') : new Date();
+      const { formattedDate, dayName } = formatDateWithDay(selectedDate);
+
+      // Get all branches sorted
+      const allBranches = [...new Set(employees.map(e => e.branch))].sort();
+
+      let reportLines = [];
+      reportLines.push(`*Absentees Reports - for ${formattedDate} and Date*`);
+      reportLines.push('');
+      reportLines.push('-----------------------------------------');
+
+      allBranches.forEach(branchName => {
+        // All staff in this branch
+        const branchEmployees = employees.filter(e => e.branch === branchName);
+        const branchTotalStaff = branchEmployees.length;
+
+        // Absentees in this branch
+        const branchAbsentees = branchEmployees
+          .filter(e => markedAbsentees[e.id])
+          .map(e => ({
+            name: e.employee_name,
+            code: markedAbsentees[e.id].code
+          }));
+
+        const totalAbsentCount = branchAbsentees.length;
+        const totalPresentCount = Math.max(0, branchTotalStaff - totalAbsentCount);
+
+        reportLines.push('');
+        reportLines.push(`${branchName}  - `);
+        reportLines.push(`Total Present - ${totalPresentCount}, Total Absent - ${totalAbsentCount}`);
+        reportLines.push('');
+
+        if (branchAbsentees.length === 0) {
+          reportLines.push('(1) All present');
+        } else {
+          branchAbsentees.forEach((abs, i) => {
+            reportLines.push(`(${i + 1}) ${abs.name} - ${abs.code}`);
+          });
+        }
+
+        reportLines.push('');
+        reportLines.push('-----------------------------------------');
+      });
+
+      return reportLines.join('\n');
+    }
+
+    function setupDateDefaults() {
+      const picker = document.getElementById('reportDatePicker');
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      picker.value = `${yyyy}-${mm}-${dd}`;
+      updateDateDisplay(today);
+
+      picker.addEventListener('change', (e) => {
+        if (e.target.value) {
+          updateDateDisplay(new Date(e.target.value + 'T00:00:00'));
+        }
+      });
+    }
+
+    function updateDateDisplay(dateObj) {
+      const { formattedDate, dayName } = formatDateWithDay(dateObj);
+      document.getElementById('formattedDisplayDate').innerHTML = `
+        <i class="ph ph-calendar text-slate-400"></i>
+        <span><strong>${formattedDate}</strong> (${dayName})</span>
+      `;
+    }
+
+    function copyToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showCopyToast();
+        } else {
+          showNotification('Please manually copy the text in the preview box.', 'amber');
+        }
+      } catch (err) {
+        showNotification('Copy failed. Please manually copy the report.', 'amber');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function showCopyToast() {
+      const toast = document.getElementById('copyToast');
+      toast.classList.remove('opacity-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    function downloadTextFile(filename, text) {
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+
+    function shareViaWhatsApp(reportText) {
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(reportText)}`;
+      window.open(url, '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeStorage();
+      setupDateDefaults();
+      populateBranchDropdown();
+      renderEmployeeList();
+      renderAbsenteeQueue();
+      updateKPIs();
+
+      // Branch selection change
+      document.getElementById('branchSelect').addEventListener('change', (e) => {
+        selectedBranch = e.target.value;
+        renderEmployeeList();
+      });
+
+      // Search typing
+      const searchInput = document.getElementById('searchInput');
+      const btnClearSearch = document.getElementById('btnClearSearch');
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (searchQuery.trim().length > 0) {
+          btnClearSearch.classList.remove('hidden');
+        } else {
+          btnClearSearch.classList.add('hidden');
+        }
+        renderEmployeeList();
+      });
+
+      btnClearSearch.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        btnClearSearch.classList.add('hidden');
+        renderEmployeeList();
+        searchInput.focus();
+      });
+
+      // Clear all absentees
+      document.getElementById('btnClearAllAbsentees').addEventListener('click', () => {
+        markedAbsentees = {};
+        saveAbsenteesToStorage();
+        renderEmployeeList();
+        renderAbsenteeQueue();
+        updateKPIs();
+        showNotification('All absentee marks cleared.');
+      });
+
+      document.getElementById('btnQuickMarkAllPresent').addEventListener('click', () => {
+        markedAbsentees = {};
+        saveAbsenteesToStorage();
+        renderEmployeeList();
+        renderAbsenteeQueue();
+        updateKPIs();
+        showNotification('Reset marks completed.');
+      });
+
+      // Sync button
+      document.getElementById('btnSyncSheet').addEventListener('click', syncSheetData);
+
+      // Report Modal
+      const reportModal = document.getElementById('reportModal');
+      const reportTextArea = document.getElementById('reportTextArea');
+
+      document.getElementById('btnGenerateReport').addEventListener('click', () => {
+        const report = generateReportString();
+        reportTextArea.value = report;
+        reportModal.classList.remove('hidden');
+      });
+
+      document.getElementById('btnCloseReportModal').addEventListener('click', () => {
+        reportModal.classList.add('hidden');
+      });
+
+      document.getElementById('btnCopyReport').addEventListener('click', () => {
+        copyToClipboard(reportTextArea.value);
+      });
+
+      document.getElementById('btnShareWhatsApp').addEventListener('click', () => {
+        shareViaWhatsApp(reportTextArea.value);
+      });
+
+      document.getElementById('btnDownloadReport').addEventListener('click', () => {
+        const picker = document.getElementById('reportDatePicker');
+        const d = picker.value || 'report';
+        downloadTextFile(`Absentees_Report_${d}.txt`, reportTextArea.value);
+      });
+
+      // Config Modal
+      const configModal = document.getElementById('configModal');
+      document.getElementById('btnOpenConfig').addEventListener('click', () => {
+        configModal.classList.remove('hidden');
+      });
+
+      document.getElementById('btnCloseConfigModal').addEventListener('click', () => {
+        configModal.classList.add('hidden');
+      });
+
+      document.getElementById('btnSaveConfig').addEventListener('click', () => {
+        const url = document.getElementById('sheetUrlInput').value.trim();
+        if (url) {
+          localStorage.setItem(STORAGE_KEY_SHEET_URL, url);
+        }
+        configModal.classList.add('hidden');
+        syncSheetData();
+      });
+
+      document.getElementById('btnRestoreSeedData').addEventListener('click', () => {
+        employees = [...INITIAL_ROSTER_DATA];
+        localStorage.setItem(STORAGE_KEY_EMPLOYEES, JSON.stringify(employees));
+        localStorage.setItem(STORAGE_KEY_SHEET_URL, DEFAULT_SHEET_URL);
+        document.getElementById('sheetUrlInput').value = DEFAULT_SHEET_URL;
+        configModal.classList.add('hidden');
+        populateBranchDropdown();
+        renderEmployeeList();
+        renderAbsenteeQueue();
+        updateKPIs();
+        showNotification('Restored default roster data.');
+      });
+
+      // Dismiss modals when clicking backdrop
+      window.addEventListener('click', (e) => {
+        if (e.target === configModal) configModal.classList.add('hidden');
+        if (e.target === reportModal) reportModal.classList.add('hidden');
+      });
+
+      // Automatically attempt initial sync in the background
+      syncSheetData();
+    });
+  </script>
+</body>
+</html>
